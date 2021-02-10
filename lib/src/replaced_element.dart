@@ -1,7 +1,5 @@
 import 'dart:math';
 
-import 'package:chewie/chewie.dart';
-import 'package:chewie_audio/chewie_audio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -9,10 +7,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_html/html_parser.dart';
 import 'package:flutter_html/src/html_elements.dart';
 import 'package:flutter_html/style.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:html/dom.dart' as dom;
-import 'package:video_player/video_player.dart';
-import 'package:webview_flutter/webview_flutter.dart';
 
 /// A [ReplacedElement] is a type of [StyledElement] that does not require its [children] to be rendered.
 ///
@@ -90,155 +85,6 @@ class ImageContentElement extends ReplacedElement {
   }
 }
 
-/// [IframeContentElement is a [ReplacedElement] with web content.
-class IframeContentElement extends ReplacedElement {
-  final String src;
-  final double width;
-  final double height;
-  final NavigationDelegate navigationDelegate;
-
-  IframeContentElement({
-    String name,
-    Style style,
-    this.src,
-    this.width,
-    this.height,
-    dom.Element node,
-    this.navigationDelegate,
-  }) : super(name: name, style: style, node: node);
-
-  @override
-  Widget toWidget(RenderContext context) {
-    final sandboxMode = attributes["sandbox"];
-    return Container(
-      width: width ?? (height ?? 150) * 2,
-      height: height ?? (width ?? 300) / 2,
-      child: WebView(
-        initialUrl: src,
-        javascriptMode: sandboxMode == null || sandboxMode == "allow-scripts"
-            ? JavascriptMode.unrestricted
-            : JavascriptMode.disabled,
-        navigationDelegate: navigationDelegate,
-        gestureRecognizers: {
-          Factory(() => PlatformViewVerticalGestureRecognizer())
-        },
-      ),
-    );
-  }
-}
-
-/// [AudioContentElement] is a [ContentElement] with an audio file as its content.
-class AudioContentElement extends ReplacedElement {
-  final List<String> src;
-  final bool showControls;
-  final bool autoplay;
-  final bool loop;
-  final bool muted;
-
-  AudioContentElement({
-    String name,
-    Style style,
-    this.src,
-    this.showControls,
-    this.autoplay,
-    this.loop,
-    this.muted,
-    dom.Element node,
-  }) : super(name: name, style: style, node: node);
-
-  @override
-  Widget toWidget(RenderContext context) {
-    return Container(
-      width: context.style.width ?? 300,
-      child: ChewieAudio(
-        controller: ChewieAudioController(
-          videoPlayerController: VideoPlayerController.network(
-            src.first ?? "",
-          ),
-          autoPlay: autoplay,
-          looping: loop,
-          showControls: showControls,
-          autoInitialize: true,
-        ),
-      ),
-    );
-  }
-}
-
-/// [VideoContentElement] is a [ContentElement] with a video file as its content.
-class VideoContentElement extends ReplacedElement {
-  final List<String> src;
-  final String poster;
-  final bool showControls;
-  final bool autoplay;
-  final bool loop;
-  final bool muted;
-  final double width;
-  final double height;
-
-  VideoContentElement({
-    String name,
-    Style style,
-    this.src,
-    this.poster,
-    this.showControls,
-    this.autoplay,
-    this.loop,
-    this.muted,
-    this.width,
-    this.height,
-    dom.Element node,
-  }) : super(name: name, style: style, node: node);
-
-  @override
-  Widget toWidget(RenderContext context) {
-    final double _width = width ?? (height ?? 150) * 2;
-    final double _height = height ?? (width ?? 300) / 2;
-    return AspectRatio(
-      aspectRatio: _width / _height,
-      child: Container(
-        child: Chewie(
-          controller: ChewieController(
-            videoPlayerController: VideoPlayerController.network(
-              src.first ?? "",
-            ),
-            placeholder: poster != null
-                ? Image.network(poster)
-                : Container(color: Colors.black),
-            autoPlay: autoplay,
-            looping: loop,
-            showControls: showControls,
-            autoInitialize: true,
-            aspectRatio: _width / _height,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// [SvgContentElement] is a [ReplacedElement] with an SVG as its contents.
-class SvgContentElement extends ReplacedElement {
-  final String data;
-  final double width;
-  final double height;
-
-  SvgContentElement({
-    this.data,
-    this.width,
-    this.height,
-  });
-
-  @override
-  Widget toWidget(RenderContext context) {
-    return SvgPicture.string(
-      data,
-      width: width,
-      height: height,
-    );
-  }
-}
-
 class EmptyContentElement extends ReplacedElement {
   EmptyContentElement({String name = "empty"}) : super(name: name);
 
@@ -296,73 +142,19 @@ class RubyElement extends ReplacedElement {
   }
 }
 
-ReplacedElement parseReplacedElement(
-  dom.Element element,
-  NavigationDelegate navigationDelegateForIframe,
-) {
+ReplacedElement parseReplacedElement(dom.Element element) {
   switch (element.localName) {
-    case "audio":
-      final sources = <String>[
-        if (element.attributes['src'] != null) element.attributes['src'],
-        ...ReplacedElement.parseMediaSources(element.children),
-      ];
-      if (sources == null || sources.isEmpty || sources.first == null) {
-        return EmptyContentElement();
-      }
-      return AudioContentElement(
-        name: "audio",
-        src: sources,
-        showControls: element.attributes['controls'] != null,
-        loop: element.attributes['loop'] != null,
-        autoplay: element.attributes['autoplay'] != null,
-        muted: element.attributes['muted'] != null,
-        node: element,
-      );
     case "br":
       return TextContentElement(
         text: "\n",
         style: Style(whiteSpace: WhiteSpace.PRE),
       );
-    case "iframe":
-      return IframeContentElement(
-          name: "iframe",
-          src: element.attributes['src'],
-          width: double.tryParse(element.attributes['width'] ?? ""),
-          height: double.tryParse(element.attributes['height'] ?? ""),
-          navigationDelegate: navigationDelegateForIframe,
-          node: element);
     case "img":
       return ImageContentElement(
         name: "img",
         src: element.attributes['src'],
         alt: element.attributes['alt'],
         node: element,
-      );
-    case "video":
-      final sources = <String>[
-        if (element.attributes['src'] != null) element.attributes['src'],
-        ...ReplacedElement.parseMediaSources(element.children),
-      ];
-      if (sources == null || sources.isEmpty || sources.first == null) {
-        return EmptyContentElement();
-      }
-      return VideoContentElement(
-        name: "video",
-        src: sources,
-        poster: element.attributes['poster'],
-        showControls: element.attributes['controls'] != null,
-        loop: element.attributes['loop'] != null,
-        autoplay: element.attributes['autoplay'] != null,
-        muted: element.attributes['muted'] != null,
-        width: double.tryParse(element.attributes['width'] ?? ""),
-        height: double.tryParse(element.attributes['height'] ?? ""),
-        node: element,
-      );
-    case "svg":
-      return SvgContentElement(
-        data: element.outerHtml,
-        width: double.tryParse(element.attributes['width'] ?? ""),
-        height: double.tryParse(element.attributes['height'] ?? ""),
       );
     case "ruby":
       return RubyElement(
