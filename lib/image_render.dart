@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_html/html_parser.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:html/dom.dart' as dom;
 
 typedef ImageSourceMatcher = bool Function(
@@ -69,18 +70,22 @@ ImageRender assetImageRender({
 }) =>
     (context, attributes, element) {
       final assetPath = _src(attributes).replaceFirst('asset:', '');
-      return Image.asset(
-        assetPath,
-        width: width ?? _width(attributes),
-        height: height ?? _height(attributes),
-        frameBuilder: (ctx, child, frame, _) {
-          if (frame == null) {
-            return Text(_alt(attributes) ?? "",
-                style: context.style.generateTextStyle());
-          }
-          return child;
-        },
-      );
+      if (_src(attributes).endsWith(".svg")) {
+        return SvgPicture.asset(assetPath);
+      } else {
+        return Image.asset(
+          assetPath,
+          width: width ?? _width(attributes),
+          height: height ?? _height(attributes),
+          frameBuilder: (ctx, child, frame, _) {
+            if (frame == null) {
+              return Text(_alt(attributes) ?? "",
+                  style: context.style.generateTextStyle());
+            }
+            return child;
+          },
+        );
+      }
     };
 
 ImageRender networkImageRender({
@@ -104,7 +109,8 @@ ImageRender networkImageRender({
         },
       );
       Completer<Size> completer = Completer();
-      Image image = Image.network(src, frameBuilder: (ctx, child, frame, _) {
+      Image image =
+          Image.network(src, frameBuilder: (ctx, child, frame, _) {
         if (frame == null) {
           if (!completer.isCompleted) {
             completer.completeError("error");
@@ -148,9 +154,8 @@ ImageRender networkImageRender({
               },
             );
           } else if (snapshot.hasError) {
-            return altWidget?.call(_alt(attributes)) ??
-                Text(_alt(attributes) ?? "",
-                    style: context.style.generateTextStyle());
+            return altWidget?.call(_alt(attributes)) ?? Text(_alt(attributes) ?? "",
+                style: context.style.generateTextStyle());
           } else {
             return loadingWidget?.call() ?? const CircularProgressIndicator();
           }
@@ -158,9 +163,14 @@ ImageRender networkImageRender({
       );
     };
 
+ImageRender svgNetworkImageRender() => (context, attributes, element) {
+      return SvgPicture.network(attributes["src"]);
+    };
+
 final Map<ImageSourceMatcher, ImageRender> defaultImageRenders = {
   base64DataUriMatcher(): base64ImageRender(),
   assetUriMatcher(): assetImageRender(),
+  networkSourceMatcher(extension: "svg"): svgNetworkImageRender(),
   networkSourceMatcher(): networkImageRender(),
 };
 
