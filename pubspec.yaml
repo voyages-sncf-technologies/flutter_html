@@ -18,15 +18,8 @@ dependencies:
   # Plugins for rendering the <table> tag.
   flutter_layout_grid: ^0.10.5
 
-  # Plugins for rendering the <video> tag.
-  video_player: ^1.0.1
-  chewie: ^0.12.2
-
   # Plugin for rendering the <iframe> tag.
   webview_flutter: ^1.0.7
-
-  # Plugins for rendering the <audio> tag.
-  chewie_audio: ^1.1.2
 
   # Plugins for rendering the <svg> tag.
   flutter_svg: ^0.20.0-nullsafety.3
