@@ -14,7 +14,6 @@ import 'package:flutter_html/src/utils.dart';
 import 'package:flutter_html/style.dart';
 import 'package:html/dom.dart' as dom;
 import 'package:html/parser.dart' as htmlparser;
-import 'package:webview_flutter/webview_flutter.dart';
 
 typedef OnTap = void Function(String url);
 typedef CustomRender = dynamic Function(
@@ -35,7 +34,6 @@ class HtmlParser extends StatelessWidget {
   final Map<String, CustomRender> customRender;
   final Map<ImageSourceMatcher, ImageRender> imageRenders;
   final List<String> blacklistedElements;
-  final NavigationDelegate navigationDelegateForIframe;
 
   HtmlParser({
     @required this.htmlData,
@@ -47,7 +45,6 @@ class HtmlParser extends StatelessWidget {
     this.customRender,
     this.imageRenders,
     this.blacklistedElements,
-    this.navigationDelegateForIframe,
   });
 
   @override
@@ -57,7 +54,6 @@ class HtmlParser extends StatelessWidget {
       document,
       customRender?.keys?.toList() ?? [],
       blacklistedElements,
-      navigationDelegateForIframe,
     );
     StyledElement styledTree = applyCSS(lexedTree);
     StyledElement inlineStyledTree = applyInlineStyles(styledTree);
@@ -103,11 +99,10 @@ class HtmlParser extends StatelessWidget {
     dom.Document html,
     List<String> customRenderTags,
     List<String> blacklistedElements,
-    NavigationDelegate navigationDelegateForIframe,
   ) {
     StyledElement tree = StyledElement(
       name: "[Tree Root]",
-      children: new List<StyledElement>(),
+      children: <StyledElement>[],
       node: html.documentElement,
     );
 
@@ -116,7 +111,6 @@ class HtmlParser extends StatelessWidget {
         node,
         customRenderTags,
         blacklistedElements,
-        navigationDelegateForIframe,
       ));
     });
 
@@ -131,16 +125,14 @@ class HtmlParser extends StatelessWidget {
     dom.Node node,
     List<String> customRenderTags,
     List<String> blacklistedElements,
-    NavigationDelegate navigationDelegateForIframe,
   ) {
-    List<StyledElement> children = List<StyledElement>();
+    List<StyledElement> children = <StyledElement>[];
 
     node.nodes.forEach((childNode) {
       children.add(_recursiveLexer(
         childNode,
         customRenderTags,
         blacklistedElements,
-        navigationDelegateForIframe,
       ));
     });
 
@@ -154,7 +146,7 @@ class HtmlParser extends StatelessWidget {
       } else if (INTERACTABLE_ELEMENTS.contains(node.localName)) {
         return parseInteractableElement(node, children);
       } else if (REPLACED_ELEMENTS.contains(node.localName)) {
-        return parseReplacedElement(node, navigationDelegateForIframe);
+        return parseReplacedElement(node);
       } else if (LAYOUT_ELEMENTS.contains(node.localName)) {
         return parseLayoutElement(node, children);
       } else if (TABLE_CELL_ELEMENTS.contains(node.localName)) {
@@ -247,7 +239,9 @@ class HtmlParser extends StatelessWidget {
     RenderContext newContext = RenderContext(
       buildContext: context.buildContext,
       parser: this,
-      style: context.style.copyOnlyInherited(tree.style),
+      style: context.style != null
+          ? context.style.copyOnlyInherited(tree.style)
+          : null,
     );
 
     if (customRender?.containsKey(tree.name) ?? false) {
@@ -410,7 +404,9 @@ class HtmlParser extends StatelessWidget {
           offset: Offset(0, verticalOffset),
           child: StyledText(
             textSpan: TextSpan(
-              style: newContext.style.generateTextStyle(),
+              style: newContext.style != null
+                  ? newContext.style.generateTextStyle()
+                  : null,
               children: tree.children
                       .map((tree) => parseTree(newContext, tree))
                       .toList() ??
@@ -424,7 +420,9 @@ class HtmlParser extends StatelessWidget {
     } else {
       ///[tree] is an inline element.
       return TextSpan(
-        style: newContext.style.generateTextStyle(),
+        style: newContext.style != null
+            ? newContext.style.generateTextStyle()
+            : null,
         children:
             tree.children.map((tree) => parseTree(newContext, tree)).toList(),
       );
@@ -467,7 +465,7 @@ class HtmlParser extends StatelessWidget {
       wpc.data = false;
     }
 
-    if (tree is ImageContentElement || tree is SvgContentElement) {
+    if (tree is ImageContentElement) {
       wpc.data = false;
     }
 
@@ -666,7 +664,7 @@ class HtmlParser extends StatelessWidget {
   /// or any block-level [TextContentElement] that contains only whitespace and doesn't follow
   /// a block element or a line break.
   static StyledElement _removeEmptyElements(StyledElement tree) {
-    List<StyledElement> toRemove = new List<StyledElement>();
+    List<StyledElement> toRemove = <StyledElement>[];
     bool lastChildBlock = true;
     tree.children?.forEach((child) {
       if (child is EmptyContentElement || child is EmptyLayoutElement) {
@@ -762,7 +760,9 @@ class ContainerSpan extends StatelessWidget {
       child: child ??
           StyledText(
             textSpan: TextSpan(
-              style: newContext.style.generateTextStyle(),
+              style: newContext.style != null
+                  ? newContext.style.generateTextStyle()
+                  : null,
               children: children,
             ),
             style: newContext.style,
@@ -788,19 +788,21 @@ class StyledText extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: calculateWidth(style.display, renderContext),
+      width:
+          calculateWidth(style != null ? style.display : null, renderContext),
       child: Text.rich(
         textSpan,
-        style: style.generateTextStyle(),
-        textAlign: style.textAlign,
-        textDirection: style.direction,
+        style: style != null ? style.generateTextStyle() : null,
+        textAlign: style != null ? style.textAlign : null,
+        textDirection: style != null ? style.direction : null,
         textScaleFactor: textScaleFactor,
       ),
     );
   }
 
   double calculateWidth(Display display, RenderContext context) {
-    if ((display == Display.BLOCK || display == Display.LIST_ITEM) && !renderContext.parser.shrinkWrap) {
+    if ((display == Display.BLOCK || display == Display.LIST_ITEM) &&
+        !renderContext.parser.shrinkWrap) {
       return double.infinity;
     }
     if (renderContext.parser.shrinkWrap) {

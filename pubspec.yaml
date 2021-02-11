@@ -15,15 +15,6 @@ dependencies:
   csslib: ^0.16.2
   css_colors: ^1.0.2
 
-  # Plugins for rendering the <table> tag.
-  flutter_layout_grid: ^0.10.5
-
-  # Plugin for rendering the <iframe> tag.
-  webview_flutter: ^1.0.7
-
-  # Plugins for rendering the <svg> tag.
-  flutter_svg: ^0.20.0-nullsafety.3
-
   flutter:
     sdk: flutter
 

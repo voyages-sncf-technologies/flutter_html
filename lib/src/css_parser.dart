@@ -91,7 +91,7 @@ class DeclarationVisitor extends css.Visitor {
   @override
   void visitDeclaration(css.Declaration node) {
     _currentProperty = node.property;
-    _result[_currentProperty] = new List<css.Expression>();
+    _result[_currentProperty] = <css.Expression>[];
     node.expression.visit(this);
   }
 
@@ -352,19 +352,19 @@ class ExpressionMapping {
       if (exp is css.LiteralTerm && exp2 is css.LiteralTerm) {
         if (exp3 != null && (exp3 is css.HexColorTerm || exp3 is css.FunctionTerm)) {
           shadow.add(Shadow(
-              color: expressionToColor(exp3), 
+              color: expressionToColor(exp3),
               offset: Offset(double.tryParse(exp.text.replaceAll(nonNumberRegex, '')), double.tryParse(exp2.text.replaceAll(nonNumberRegex, '')))
           ));
         } else if (exp3 != null && exp3 is css.LiteralTerm) {
           if (exp4 != null && (exp4 is css.HexColorTerm || exp4 is css.FunctionTerm)) {
             shadow.add(Shadow(
-                color: expressionToColor(exp4), 
-                offset: Offset(double.tryParse(exp.text.replaceAll(nonNumberRegex, '')), double.tryParse(exp2.text.replaceAll(nonNumberRegex, ''))), 
+                color: expressionToColor(exp4),
+                offset: Offset(double.tryParse(exp.text.replaceAll(nonNumberRegex, '')), double.tryParse(exp2.text.replaceAll(nonNumberRegex, ''))),
                 blurRadius: double.tryParse(exp3.text.replaceAll(nonNumberRegex, ''))
             ));
           } else {
             shadow.add(Shadow(
-                offset: Offset(double.tryParse(exp.text.replaceAll(nonNumberRegex, '')), double.tryParse(exp2.text.replaceAll(nonNumberRegex, ''))), 
+                offset: Offset(double.tryParse(exp.text.replaceAll(nonNumberRegex, '')), double.tryParse(exp2.text.replaceAll(nonNumberRegex, ''))),
                 blurRadius: double.tryParse(exp3.text.replaceAll(nonNumberRegex, ''))
             ));
           }

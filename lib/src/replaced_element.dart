@@ -7,9 +7,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_html/html_parser.dart';
 import 'package:flutter_html/src/html_elements.dart';
 import 'package:flutter_html/style.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:html/dom.dart' as dom;
-import 'package:webview_flutter/webview_flutter.dart';
 
 /// A [ReplacedElement] is a type of [StyledElement] that does not require its [children] to be rendered.
 ///
@@ -87,65 +85,6 @@ class ImageContentElement extends ReplacedElement {
   }
 }
 
-/// [IframeContentElement is a [ReplacedElement] with web content.
-class IframeContentElement extends ReplacedElement {
-  final String src;
-  final double width;
-  final double height;
-  final NavigationDelegate navigationDelegate;
-
-  IframeContentElement({
-    String name,
-    Style style,
-    this.src,
-    this.width,
-    this.height,
-    dom.Element node,
-    this.navigationDelegate,
-  }) : super(name: name, style: style, node: node);
-
-  @override
-  Widget toWidget(RenderContext context) {
-    final sandboxMode = attributes["sandbox"];
-    return Container(
-      width: width ?? (height ?? 150) * 2,
-      height: height ?? (width ?? 300) / 2,
-      child: WebView(
-        initialUrl: src,
-        javascriptMode: sandboxMode == null || sandboxMode == "allow-scripts"
-            ? JavascriptMode.unrestricted
-            : JavascriptMode.disabled,
-        navigationDelegate: navigationDelegate,
-        gestureRecognizers: {
-          Factory(() => PlatformViewVerticalGestureRecognizer())
-        },
-      ),
-    );
-  }
-}
-
-/// [SvgContentElement] is a [ReplacedElement] with an SVG as its contents.
-class SvgContentElement extends ReplacedElement {
-  final String data;
-  final double width;
-  final double height;
-
-  SvgContentElement({
-    this.data,
-    this.width,
-    this.height,
-  });
-
-  @override
-  Widget toWidget(RenderContext context) {
-    return SvgPicture.string(
-      data,
-      width: width,
-      height: height,
-    );
-  }
-}
-
 class EmptyContentElement extends ReplacedElement {
   EmptyContentElement({String name = "empty"}) : super(name: name);
 
@@ -162,7 +101,7 @@ class RubyElement extends ReplacedElement {
   @override
   Widget toWidget(RenderContext context) {
     dom.Node textNode;
-    List<Widget> widgets = List<Widget>();
+    List<Widget> widgets = <Widget>[];
     //TODO calculate based off of parent font size.
     final rubySize = max(9.0, context.style.fontSize.size / 2);
     final rubyYPos = rubySize + rubySize / 2;
@@ -205,7 +144,6 @@ class RubyElement extends ReplacedElement {
 
 ReplacedElement parseReplacedElement(
   dom.Element element,
-  NavigationDelegate navigationDelegateForIframe,
 ) {
   switch (element.localName) {
     case "br":
@@ -213,26 +151,12 @@ ReplacedElement parseReplacedElement(
         text: "\n",
         style: Style(whiteSpace: WhiteSpace.PRE),
       );
-    case "iframe":
-      return IframeContentElement(
-          name: "iframe",
-          src: element.attributes['src'],
-          width: double.tryParse(element.attributes['width'] ?? ""),
-          height: double.tryParse(element.attributes['height'] ?? ""),
-          navigationDelegate: navigationDelegateForIframe,
-          node: element);
     case "img":
       return ImageContentElement(
         name: "img",
         src: element.attributes['src'],
         alt: element.attributes['alt'],
         node: element,
-      );
-    case "svg":
-      return SvgContentElement(
-        data: element.outerHtml,
-        width: double.tryParse(element.attributes['width'] ?? ""),
-        height: double.tryParse(element.attributes['height'] ?? ""),
       );
     case "ruby":
       return RubyElement(
